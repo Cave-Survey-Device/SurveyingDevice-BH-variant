@@ -114,8 +114,8 @@ void loop()
   current_time = millis();
   timer_start = millis();
 
-  bool ble_status = random(0, 100);
-  int batt_percentage = battery_level.battery_level_percent();
+  ble_status = random(0, 100);
+  batt_percentage = battery_level.battery_level_percent();
 
   compass = bno085.Compass();
   clino = bno085.Clino();
