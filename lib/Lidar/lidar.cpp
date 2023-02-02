@@ -279,6 +279,7 @@ double Lidar::get_measurement()
         return 0;
     }
 
+    generate_command(LIDAR_LASER_ON,generated_command);
     return distance;
 }
 

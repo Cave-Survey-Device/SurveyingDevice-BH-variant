@@ -4,53 +4,138 @@
 #include "lidar.h"
 #include "Battery_level.h"
 
+#define TAKE_READING_BUTTON 32
+#define LASER_ON_OFF_BUTTON 27
+
 OLED oled; // create a OLED object
 BNO085 bno085;
 Lidar lidar;
 Battery_level battery_level;
 
+volatile bool interrupt_button_pressed = 0;
+volatile bool interrupt_button_pressed_timer = 0;
+volatile bool laser_get_measurment = 0;
+
+unsigned long timer_start = 0;
+unsigned long current_time = 0;
+unsigned long interval = 3000;
 
 float new_combined_value;
 float combined_value;
 float threshold = 0.1;
 float diff;
-float distance = 0;
-int sensor_status;
 
-void setup() {
+float distance = 0;
+float compass;
+float clino;
+int sensor_status;
+bool ble_status;
+int batt_percentage;
+
+void Laser_on_off_interupt()
+{
+  lidar.toggle_laser();
+}
+
+void take_reading_button_pressed()
+{
+  if (digitalRead(TAKE_READING_BUTTON) == 0)
+  {
+    interrupt_button_pressed = 1;
+    interrupt_button_pressed_timer = 1;
+  }
+  else
+  {
+    interrupt_button_pressed = 0;
+  }
+}
+
+void setup()
+{
   Serial.begin(9600);
   oled.Initialise();
   bno085.Initialise();
   oled.Distance(distance);
   lidar.init();
+
+  pinMode(GPIO_NUM_14, OUTPUT);
+  digitalWrite(GPIO_NUM_14, HIGH);
+
+  pinMode(TAKE_READING_BUTTON, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(TAKE_READING_BUTTON), take_reading_button_pressed, CHANGE);
+
+  pinMode(LASER_ON_OFF_BUTTON, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(LASER_ON_OFF_BUTTON), Laser_on_off_interupt, FALLING);
 }
 
-void loop() {
+void loop()
+{
 
-  bool ble_status = random(0,100);
+  // this is if the user holds down the button
+  while (interrupt_button_pressed == 1)
+  {
+    if (interrupt_button_pressed_timer == 1)
+    {
+      timer_start = millis();
+      interrupt_button_pressed_timer = 0;
+      laser_get_measurment = 1;
+    }
+    current_time = millis();
+    Serial.println(current_time - timer_start);
+    
+    if (current_time - timer_start > interval)
+    {
+      break;
+    }
+  }
+
+  if (current_time - timer_start > interval)
+  {
+    // replace with shutdown function
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+  }
+
+  if (laser_get_measurment == 1)
+  {
+    distance = lidar.get_measurement();
+    oled.Distance(distance);
+    laser_get_measurment = 0;
+    delay(100);
+    lidar.toggle_laser();
+  }
+
+  current_time = millis();
+  timer_start = millis();
+
+  bool ble_status = random(0, 100);
   int batt_percentage = battery_level.battery_level_percent();
 
-  float compass = bno085.Compass();
-  float clino = bno085.Clino();
+  compass = bno085.Compass();
+  clino = bno085.Clino();
 
   combined_value = compass + clino;
   diff = combined_value - new_combined_value;
-  
-  if (diff>threshold||diff<-threshold)  
-  {  
-  
-  oled.Compass(compass);
-  oled.Clino(-clino);
-  float compass = bno085.Compass();
-  float clino = bno085.Clino();
-  new_combined_value = compass + clino;
-  oled.Blutooth(ble_status);
-  oled.Battery(batt_percentage);
-  }  
 
+  if (diff > threshold || diff < -threshold)
+  {
 
-  
-  int sensor_status = bno085.sensor_cal_status();
+    oled.Compass(compass);
+    oled.Clino(-clino);
+    compass = bno085.Compass();
+    clino = bno085.Clino();
+    new_combined_value = compass + clino;
+    oled.Blutooth(ble_status);
+    oled.Battery(batt_percentage);
+  }
+
+  sensor_status = bno085.sensor_cal_status();
   oled.Sensor_cal_status(sensor_status);
 
 }
