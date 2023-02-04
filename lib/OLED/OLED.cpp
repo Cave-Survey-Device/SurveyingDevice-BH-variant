@@ -79,3 +79,7 @@ void OLED::Battery(int batt_percentage) {
   display.print("%");
   display.display();
 }
+
+void OLED::clearDisplay() {
+   display.clearDisplay();
+}

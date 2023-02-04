@@ -51,6 +51,8 @@ class Lidar {
         // Toggle laser
         void toggle_laser();
 
+        void laser_turn_off();
+
     private:
         // Enable lidar via GPIO pin
         void enable();

@@ -3,6 +3,7 @@
 #include "BNO085.h"
 #include "lidar.h"
 #include "Battery_level.h"
+#include "esp_sleep.h"
 
 #define TAKE_READING_BUTTON 32
 #define LASER_ON_OFF_BUTTON 27
@@ -57,6 +58,8 @@ void setup()
   bno085.Initialise();
   oled.Distance(distance);
   lidar.init();
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_27,1); //1 = High, 0 = Low
+
 
   pinMode(GPIO_NUM_14, OUTPUT);
   digitalWrite(GPIO_NUM_14, HIGH);
@@ -82,25 +85,20 @@ void loop()
     }
     current_time = millis();
     Serial.println(current_time - timer_start);
-    
+
     if (current_time - timer_start > interval)
     {
+      oled.clearDisplay();
+      lidar.laser_turn_off();
+      digitalWrite(GPIO_NUM_14, LOW);
+      esp_deep_sleep_start();
+      laser_get_measurment = 0;
       break;
     }
   }
 
-  if (current_time - timer_start > interval)
-  {
-    // replace with shutdown function
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
-  }
+  current_time = millis();
+  timer_start = millis();
 
   if (laser_get_measurment == 1)
   {
@@ -109,10 +107,8 @@ void loop()
     laser_get_measurment = 0;
     delay(100);
     lidar.toggle_laser();
-  }
 
-  current_time = millis();
-  timer_start = millis();
+  }
 
   ble_status = random(0, 100);
   batt_percentage = battery_level.battery_level_percent();
@@ -133,9 +129,8 @@ void loop()
     new_combined_value = compass + clino;
     oled.Blutooth(ble_status);
     oled.Battery(batt_percentage);
+    sensor_status = bno085.sensor_cal_status();
+    oled.Sensor_cal_status(sensor_status);
   }
-
-  sensor_status = bno085.sensor_cal_status();
-  oled.Sensor_cal_status(sensor_status);
 
 }

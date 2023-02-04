@@ -18,6 +18,7 @@ class OLED {
     void Blutooth(bool ble_status);
     void Battery(int batt_percentage);
     void Initialise();
+    void clearDisplay();
     
     double batt_voltage;
     int batt_level;
