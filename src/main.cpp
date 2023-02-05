@@ -38,6 +38,16 @@ void Laser_on_off_interupt()
   lidar.toggle_laser();
 }
 
+void power_down()
+{
+  oled.clearDisplay();
+  lidar.laser_turn_off();
+  digitalWrite(GPIO_NUM_14, LOW);
+  laser_get_measurment = 0;
+  Serial.print("powerdown");
+  esp_deep_sleep_start();
+}
+
 void take_reading_button_pressed()
 {
   if (digitalRead(TAKE_READING_BUTTON) == 0)
@@ -58,8 +68,7 @@ void setup()
   bno085.Initialise();
   oled.Distance(distance);
   lidar.init();
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_27,1); //1 = High, 0 = Low
-
+  // esp_sleep_enable_ext0_wakeup(GPIO_NUM_27,1); //1 = High, 0 = Low
 
   pinMode(GPIO_NUM_14, OUTPUT);
   digitalWrite(GPIO_NUM_14, HIGH);
@@ -73,7 +82,6 @@ void setup()
 
 void loop()
 {
-
   // this is if the user holds down the button
   while (interrupt_button_pressed == 1)
   {
@@ -88,11 +96,8 @@ void loop()
 
     if (current_time - timer_start > interval)
     {
-      oled.clearDisplay();
-      lidar.laser_turn_off();
-      digitalWrite(GPIO_NUM_14, LOW);
-      esp_deep_sleep_start();
-      laser_get_measurment = 0;
+      power_down();
+      Serial.print("powerdown");
       break;
     }
   }
@@ -107,7 +112,6 @@ void loop()
     laser_get_measurment = 0;
     delay(100);
     lidar.toggle_laser();
-
   }
 
   ble_status = random(0, 100);
@@ -132,5 +136,4 @@ void loop()
     sensor_status = bno085.sensor_cal_status();
     oled.Sensor_cal_status(sensor_status);
   }
-
 }
