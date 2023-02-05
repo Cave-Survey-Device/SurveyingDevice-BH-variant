@@ -3,7 +3,8 @@
 #include "BNO085.h"
 #include "lidar.h"
 #include "Battery_level.h"
-#include "esp_sleep.h"
+// #include "esp_sleep.h"
+#include <BleGamepad.h>
 
 #define TAKE_READING_BUTTON 32
 #define LASER_ON_OFF_BUTTON 27
@@ -12,6 +13,7 @@ OLED oled; // create a OLED object
 BNO085 bno085;
 Lidar lidar;
 Battery_level battery_level;
+BleGamepad bleGamepad("TunnelVR Distox1", "Brendans Bluetooth", 99);
 
 volatile bool interrupt_button_pressed = 0;
 volatile bool interrupt_button_pressed_timer = 0;
@@ -78,6 +80,12 @@ void setup()
 
   pinMode(LASER_ON_OFF_BUTTON, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(LASER_ON_OFF_BUTTON), Laser_on_off_interupt, FALLING);
+
+  BleGamepadConfiguration bleGamepadConfig;
+  bleGamepadConfig.setAutoReport(false);
+  // bleGamepadConfig.setButtonCount(8);
+  // bleGamepadConfig.setHatSwitchCount(0);
+  bleGamepad.begin(&bleGamepadConfig); // Creates a gamepad with 128 buttons, 2 hat switches and x, y, z, rZ, rX, rY and 2 sliders (no simulation controls enabled by default)
 }
 
 void loop()
@@ -92,7 +100,7 @@ void loop()
       laser_get_measurment = 1;
     }
     current_time = millis();
-    Serial.println(current_time - timer_start);
+    // Serial.println(current_time - timer_start);
 
     if (current_time - timer_start > interval)
     {
@@ -107,33 +115,45 @@ void loop()
 
   if (laser_get_measurment == 1)
   {
-    distance = lidar.get_measurement();
+    // distance = lidar.get_measurement();
     oled.Distance(distance);
+    oled.Compass(compass);
+    oled.Clino(-clino);
     laser_get_measurment = 0;
     delay(100);
     lidar.toggle_laser();
+    bleGamepad.setX(distance);
+    bleGamepad.setY(compass);
+    bleGamepad.setZ(clino);
+    // bleGamepad.setSlider1();
+    // bleGamepad.setSlider2();
+    // bleGamepad.setRZ();
   }
 
   ble_status = random(0, 100);
   batt_percentage = battery_level.battery_level_percent();
-
+  double voltage_level = battery_level.voltage_level();
+  int raw_value = battery_level.raw_value();
+  Serial1.print(batt_percentage);
+  Serial1.print(",");
+  Serial1.print(voltage_level);
+  Serial1.print(",");
+  Serial1.println(raw_value);
   compass = bno085.Compass();
   clino = bno085.Clino();
 
   combined_value = compass + clino;
   diff = combined_value - new_combined_value;
 
-  if (diff > threshold || diff < -threshold)
-  {
-
-    oled.Compass(compass);
-    oled.Clino(-clino);
-    compass = bno085.Compass();
-    clino = bno085.Clino();
-    new_combined_value = compass + clino;
-    oled.Blutooth(ble_status);
-    oled.Battery(batt_percentage);
-    sensor_status = bno085.sensor_cal_status();
-    oled.Sensor_cal_status(sensor_status);
-  }
+  oled.Compass(compass);
+  oled.Clino(-clino);
+  compass = bno085.Compass();
+  clino = bno085.Clino();
+  new_combined_value = compass + clino;
+  oled.Blutooth(ble_status);
+  oled.Battery(batt_percentage);
+  bleGamepad.setBatteryLevel(batt_percentage);
+  sensor_status = bno085.sensor_cal_status();
+  oled.Sensor_cal_status(sensor_status);
+ delay(5000);
 }

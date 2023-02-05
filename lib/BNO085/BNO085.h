@@ -17,6 +17,7 @@ class BNO085 {
     float Compass();
     float Clino();
     int sensor_cal_status();
+
     float compass;
     float clino;
     int sensor_status;

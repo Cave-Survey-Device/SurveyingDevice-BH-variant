@@ -11,6 +11,8 @@ class Battery_level {
   public:
     
     int battery_level_percent();
+    double voltage_level();
+    int raw_value();
     int rawValue;
     float voltageLevel;
     float batteryFraction;
