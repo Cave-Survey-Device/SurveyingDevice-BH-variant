@@ -1,9 +1,11 @@
 // main code: ArduinoCode.ino
+#include <Arduino.h>
 #include "OLED.h"
 #include "BNO085.h"
 #include "lidar.h"
 #include "Battery_level.h"
 #include "esp_sleep.h"
+#include "RM3100.h"
 
 #define TAKE_READING_BUTTON 32
 #define LASER_ON_OFF_BUTTON 27
@@ -12,6 +14,7 @@ OLED oled; // create a OLED object
 BNO085 bno085;
 Lidar lidar;
 Battery_level battery_level;
+RM3100 magSensor;
 
 volatile bool interrupt_button_pressed = 0;
 volatile bool interrupt_button_pressed_timer = 0;
@@ -68,6 +71,7 @@ void setup()
   bno085.Initialise();
   oled.Distance(distance);
   lidar.init();
+  magSensor.init();
   // esp_sleep_enable_ext0_wakeup(GPIO_NUM_27,1); //1 = High, 0 = Low
 
   pinMode(GPIO_NUM_14, OUTPUT);
@@ -136,4 +140,10 @@ void loop()
     sensor_status = bno085.sensor_cal_status();
     oled.Sensor_cal_status(sensor_status);
   }
-}
+
+  delay(1000);
+  
+  Vector3d vec = magSensor.get_mag_vec();
+  magSensor.update();
+  Serial.printf("X: %f   Y: %f   Z: %f\n", vec(0), vec(1), vec(2));
+  }
