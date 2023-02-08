@@ -35,7 +35,7 @@ private:
     const int RM3100Address = 0x20;
     const int initialCC = 200;
     const bool singleMode = false;
-    const bool useDRDYPin = true;
+    const bool useDRDYPin = false;
 
     uint8_t revid;
     uint16_t cycleCount;
